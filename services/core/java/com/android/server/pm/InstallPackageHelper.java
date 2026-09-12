@@ -234,6 +234,16 @@ final class InstallPackageHelper {
     // List of packages being installed
     private final Set<String> mInstallingPackages;
 
+    // Blocked Packages
+    //line 1551
+    private static final Set<String> ROM_BLOCKED_INSTALL_PACKAGES = Set.of(
+        "com.google.android.verifier"
+    );
+
+    private static boolean isRomBlockedPackage(String packageName) {
+        return ROM_BLOCKED_INSTALL_PACKAGES.contains(packageName);
+    }
+    /*-----*/
 
     // TODO(b/198166813): remove PMS dependency
     InstallPackageHelper(PackageManagerService pm,
@@ -1537,6 +1547,18 @@ final class InstallPackageHelper {
             if (request.getPackageLite() == null || !request.isArchived()) {
                 // TODO: pass packageLite from install request instead of reparsing the package
                 parsedPackage = pp.parsePackage(tmpPackageFile, parseFlags, false);
+
+                //test APK block
+                if (isRomBlockedPackage(parsedPackage.getPackageName())) {
+                    Slog.w(TAG, "ROM blocked installation of "
+                            + parsedPackage.getPackageName());
+
+                    throw new PrepareFailure(
+                            PackageManager.INSTALL_FAILED_USER_RESTRICTED,
+                            "Package blocked by ROM");
+                }
+                /*-----*/
+
                 if (!com.android.art.flags.Flags.artManagedInstallFilesValidationApi()) {
                     AndroidPackageUtils.validatePackageDexMetadata(parsedPackage);
                 }
