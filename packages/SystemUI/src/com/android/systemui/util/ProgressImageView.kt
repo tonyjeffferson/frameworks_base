@@ -26,6 +26,7 @@ import android.graphics.Bitmap
 import android.graphics.drawable.Drawable
 import android.media.AudioManager
 import android.os.BatteryManager
+import android.os.PowerManager
 import android.provider.Settings
 import android.util.AttributeSet
 import android.graphics.Color
@@ -47,6 +48,7 @@ class ProgressImageView @JvmOverloads constructor(
     private var progressPercent = -1
     private var batteryLevel = -1
     private var isDozing = false
+    private var isScreenOn = true
     private var lastRenderedColor = Color.WHITE
     private val statusBarStateController: StatusBarStateController by lazy {
         Dependency.get(StatusBarStateController::class.java)
@@ -65,7 +67,11 @@ class ProgressImageView @JvmOverloads constructor(
         override fun onDozingChanged(dozing: Boolean) {
             if (isDozing == dozing) return
             isDozing = dozing
-            updateProgress()
+            if (progressType == ProgressType.MEMORY || progressType == ProgressType.VOLUME) {
+                updateProgressUpdates()
+            } else {
+                updateProgress()
+            }
         }
     }
 
@@ -73,7 +79,11 @@ class ProgressImageView @JvmOverloads constructor(
         override fun onReceive(context: Context, intent: Intent) {
             if (intent.action == Intent.ACTION_SCREEN_ON) {
                 isDozing = false
-                updateProgress()
+                isScreenOn = true
+                updateProgressUpdates()
+            } else if (intent.action == Intent.ACTION_SCREEN_OFF) {
+                isScreenOn = false
+                updateProgressUpdates()
             }
         }
     }
@@ -154,8 +164,10 @@ class ProgressImageView @JvmOverloads constructor(
             opacityObserver
         )
         isDozing = statusBarStateController.isDozing
+        isScreenOn = context.getSystemService(PowerManager::class.java)?.isInteractive ?: true
         statusBarStateController.addCallback(statusBarStateListener)
         val screenFilter = IntentFilter(Intent.ACTION_SCREEN_ON)
+        screenFilter.addAction(Intent.ACTION_SCREEN_OFF)
         context.registerReceiver(screenOnReceiver, screenFilter, Context.RECEIVER_NOT_EXPORTED)
         context.contentResolver.registerContentObserver(
             Settings.System.getUriFor("lockscreen_info_widgets_enabled"),
@@ -188,9 +200,11 @@ class ProgressImageView @JvmOverloads constructor(
                 receiverRegistered = true
             }
         }
-        startProgressUpdates()
         updateVisibility()
-        updateProgress()
+        updateProgressUpdates()
+        if (progressType != ProgressType.MEMORY && progressType != ProgressType.VOLUME) {
+            updateProgress()
+        }
     }
 
     override fun onDetachedFromWindow() {
@@ -208,13 +222,33 @@ class ProgressImageView @JvmOverloads constructor(
         stopProgressUpdates()
     }
 
-    private fun startProgressUpdates() {
-        if (progressType == ProgressType.MEMORY || progressType == ProgressType.VOLUME) {
-            updateJob = CoroutineScope(Dispatchers.Main).launch {
-                while (isActive) {
-                    updateProgress()
-                    delay(1000L)
-                }
+    override fun onVisibilityAggregated(isVisible: Boolean) {
+        super.onVisibilityAggregated(isVisible)
+        if (isVisible) {
+            updateProgressUpdates()
+        } else {
+            stopProgressUpdates()
+        }
+    }
+
+    private fun updateProgressUpdates() {
+        val hasPeriodicProgress = progressType == ProgressType.MEMORY ||
+                progressType == ProgressType.VOLUME
+        val shouldUpdate = hasPeriodicProgress && isAttachedToWindow && isShown && isScreenOn &&
+                !isDozing
+
+        if (!shouldUpdate) {
+            stopProgressUpdates()
+            return
+        }
+
+        if (updateJob?.isActive == true) return
+
+        val refreshInterval = if (progressType == ProgressType.MEMORY) 30_000L else 1_000L
+        updateJob = CoroutineScope(Dispatchers.Main).launch {
+            while (isActive) {
+                updateProgress()
+                delay(refreshInterval)
             }
         }
     }
@@ -224,6 +258,11 @@ class ProgressImageView @JvmOverloads constructor(
     }
 
     private fun updateProgress() {
+        if ((progressType == ProgressType.MEMORY || progressType == ProgressType.VOLUME) &&
+                (!isAttachedToWindow || !isShown || !isScreenOn || isDozing)) {
+            return
+        }
+
         val newProgressPercent = when (progressType) {
             ProgressType.BATTERY -> batteryLevel
             ProgressType.MEMORY -> getMemoryLevel()
@@ -301,6 +340,7 @@ class ProgressImageView @JvmOverloads constructor(
             "lockscreen_info_widgets_enabled", 0
         ) == 1
         visibility = if (enabled) VISIBLE else GONE
+        updateProgressUpdates()
     }
 
     companion object {
