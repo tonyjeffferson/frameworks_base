@@ -492,6 +492,11 @@ static void com_android_server_am_CachedAppOptimizer_compactSystem(JNIEnv *, job
             continue;
         }
 
+        // Root processes have no per-process system memcg to reclaim.
+        if (status_info.st_uid == 0) {
+            continue;
+        }
+
         int pid = atoi(current->d_name);
 
         compactMemcg(status_info.st_uid, pid, COMPACT_ACTION_ANON_FLAG | COMPACT_ACTION_FILE_FLAG);
