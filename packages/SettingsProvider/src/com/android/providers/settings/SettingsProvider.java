@@ -3213,6 +3213,10 @@ public class SettingsProvider extends ContentProvider {
      */
     public void scheduleWriteFallbackFilesJob(boolean forceReschedule) {
         final Context context = getContext();
+        if (ServiceManager.checkService(Context.JOB_SCHEDULER_SERVICE) == null) {
+            // Avoid looking up JobScheduler before JobSchedulerService is published.
+            return;
+        }
         JobScheduler jobScheduler = context.getSystemService(JobScheduler.class);
         if (jobScheduler == null) {
             // Might happen: SettingsProvider is created before JobSchedulerService in system server
