@@ -21,6 +21,8 @@ import android.graphics.Bitmap
 import android.graphics.BitmapShader
 import android.graphics.Canvas
 import android.graphics.Paint
+import android.graphics.Path
+import android.graphics.Point
 import android.graphics.Shader
 import android.view.View
 
@@ -28,6 +30,7 @@ class SmartPixelView(context: Context) : View(context) {
 
     private val patternPaint = Paint()
     private var patternBitmap: Bitmap? = null
+    private val sensorCutout = Path()
 
     init {
         setLayerType(LAYER_TYPE_HARDWARE, null)
@@ -40,9 +43,28 @@ class SmartPixelView(context: Context) : View(context) {
         invalidate()
     }
 
+    fun setSensorCutout(center: Point, radius: Float) {
+        val safeRadius = radius.coerceAtLeast(0f) + 4f * resources.displayMetrics.density
+        sensorCutout.reset()
+        sensorCutout.addCircle(
+            center.x.toFloat(), center.y.toFloat(), safeRadius, Path.Direction.CW,
+        )
+        invalidate()
+    }
+
+    fun clearSensorCutout() {
+        sensorCutout.reset()
+        invalidate()
+    }
+
     override fun onDraw(canvas: Canvas) {
         if (patternBitmap == null) return
+        val saveCount = canvas.save()
+        if (!sensorCutout.isEmpty) {
+            canvas.clipOutPath(sensorCutout)
+        }
         canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), patternPaint)
+        canvas.restoreToCount(saveCount)
     }
 
     override fun onDetachedFromWindow() {
