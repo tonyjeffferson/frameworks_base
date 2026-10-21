@@ -23,10 +23,12 @@
     <TextView
         android:id="@android:id/title"
         style="?expressivePreferenceTextFrameTitleStyle"
-        android:textColor="@color/luna_text_color_primary" />
+        android:duplicateParentState="true"
+        android:textColor="@color/settingslib_text_color_primary" />
 
     <TextView
         android:id="@android:id/summary"
         style="?expressivePreferenceTextFrameSummaryStyle"
-        android:textColor="@color/luna_text_color_secondary" />
+        android:duplicateParentState="true"
+        android:textColor="@color/settingslib_text_color_secondary" />
 </RelativeLayout>
