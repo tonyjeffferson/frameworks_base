@@ -49,6 +49,7 @@ data class InstallUserActionRequired(
     val actionReason: Int,
     val appSnippet: PackageUtil.AppSnippet? = null,
     val isAppUpdating: Boolean = false,
+    val updateDetails: InstallUpdateDetails? = null,
     val existingUpdateOwnerPackageName: CharSequence? = null,
     val requestedUpdateOwnerPackageName: CharSequence? = null,
     val unknownSourcePackageName: String? = null,
@@ -80,6 +81,15 @@ data class InstallUserActionRequired(
         const val USER_ACTION_REASON_VERIFICATION_CONFIRMATION = 3
     }
 }
+
+data class InstallUpdateDetails(
+    val installedVersionName: String?,
+    val installedVersionCode: Long,
+    val newVersionName: String?,
+    val newVersionCode: Long,
+    val minimumSdkVersion: Int,
+    val targetSdkVersion: Int,
+)
 
 data class InstallInstalling(
     val appSnippet: PackageUtil.AppSnippet,
