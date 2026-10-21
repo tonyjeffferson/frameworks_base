@@ -481,6 +481,9 @@ public class PreferencesHelper implements RankingConfig {
                 } else {
                     channel.populateFromXml(parser);
                 }
+                if (isBlockablePhoneVoicemailChannel(r.pkg, id)) {
+                    channel.setBlockable(true);
+                }
                 channel.setImportanceLockedByCriticalDeviceFunction(
                         r.defaultAppLockedImportance || r.fixedImportance);
 
@@ -1131,6 +1134,11 @@ public class PreferencesHelper implements RankingConfig {
         Preconditions.checkArgument(channel.getImportance() >= IMPORTANCE_NONE
                 && channel.getImportance() <= IMPORTANCE_MAX, "Invalid importance level");
 
+        // Let users disable only voicemail alerts from the otherwise protected phone package.
+        if (isBlockablePhoneVoicemailChannel(pkg, channel.getId())) {
+            channel.setBlockable(true);
+        }
+
         boolean needsPolicyFileChange = false, wasUndeleted = false, needsDndChange = false;
         synchronized (mLock) {
             PackagePreferences r = getOrCreatePackagePreferencesLocked(pkg, uid);
@@ -1711,6 +1719,12 @@ public class PreferencesHelper implements RankingConfig {
         if (android.app.Flags.nmBinderPerfCacheChannels()) {
             invalidateNotificationChannelCache();
         }
+    }
+
+    private static boolean isBlockablePhoneVoicemailChannel(String packageName, String channelId) {
+        return "com.android.phone".equals(packageName)
+                && ("voiceMail".equals(channelId)
+                        || channelId.startsWith("phone_voicemail_account_"));
     }
 
     public void updateDefaultApps(int userId, ArraySet<String> toRemove,
