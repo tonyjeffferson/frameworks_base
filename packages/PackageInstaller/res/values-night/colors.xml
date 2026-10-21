@@ -21,4 +21,5 @@
     <color name="outlineVariantColor">@android:color/system_outline_variant_dark</color>
     <color name="primaryColor">@android:color/system_primary_dark</color>
     <color name="surfaceContainerHighColor">@android:color/system_surface_container_high_dark</color>
+    <color name="updateDetailsBackgroundColor">@android:color/system_secondary_container_dark</color>
 </resources>

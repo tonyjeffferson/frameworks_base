@@ -30,6 +30,8 @@
 
         <include layout="@layout/app_snippet_layout" />
 
+        <include layout="@layout/install_update_details_v2" />
+
         <com.google.android.material.progressindicator.LinearProgressIndicator
             android:id="@+id/indeterminate_progress_bar"
             android:indeterminate="true"
