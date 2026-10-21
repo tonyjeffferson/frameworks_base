@@ -36,6 +36,7 @@ public class StatusBarTuner extends SettingsBasePreferenceFragment {
     @Override
     public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
         setPreferencesFromResource(R.xml.status_bar_prefs, rootKey);
+        getActivity().setTitle(R.string.status_bar_icons_title);
         if (!isVoiceCapable(requireContext())) {
             removeMobilePreferences();
         }
