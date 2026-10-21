@@ -28,6 +28,7 @@ import android.content.Intent;
 import android.content.pm.PackageInstaller;
 import android.content.pm.ResolveInfo;
 import android.graphics.Typeface;
+import android.os.Build;
 import android.os.Bundle;
 import android.text.Html;
 import android.text.method.LinkMovementMethod;
@@ -50,6 +51,7 @@ import com.android.packageinstaller.v2.model.InstallFailed;
 import com.android.packageinstaller.v2.model.InstallInstalling;
 import com.android.packageinstaller.v2.model.InstallStage;
 import com.android.packageinstaller.v2.model.InstallSuccess;
+import com.android.packageinstaller.v2.model.InstallUpdateDetails;
 import com.android.packageinstaller.v2.model.InstallUserActionRequired;
 import com.android.packageinstaller.v2.model.InstallVerificationFailure;
 import com.android.packageinstaller.v2.ui.InstallActionListener;
@@ -618,6 +620,7 @@ public class InstallationFragment extends DialogFragment {
         // Set the app icon and label
         mAppIcon.setImageDrawable(installStage.getAppIcon());
         mAppLabelTextView.setText(installStage.getAppLabel());
+        bindUpdateDetails(dialog, installStage);
 
         // Set the title and the message
         String title = null;
@@ -685,6 +688,61 @@ public class InstallationFragment extends DialogFragment {
                 mInstallActionListener.onNegativeResponse(installStage.getStageCode());
             });
         }
+    }
+
+    private void bindUpdateDetails(Dialog dialog, InstallUserActionRequired installStage) {
+        View details = dialog.findViewById(R.id.v2_update_details);
+        if (details == null) {
+            return;
+        }
+        InstallUpdateDetails update = installStage.getUpdateDetails();
+        if (!installStage.isAppUpdating() || update == null) {
+            details.setVisibility(View.GONE);
+            return;
+        }
+
+        details.setVisibility(View.VISIBLE);
+        ((TextView) details.findViewById(R.id.v2_update_current_version)).setText(
+                getVersionLabel(update.getInstalledVersionName(),
+                        update.getInstalledVersionCode()));
+        ((TextView) details.findViewById(R.id.v2_update_current_version_code)).setText(
+                getString(R.string.update_version_code, update.getInstalledVersionCode()));
+        ((TextView) details.findViewById(R.id.v2_update_new_version)).setText(
+                getVersionLabel(update.getNewVersionName(), update.getNewVersionCode()));
+        ((TextView) details.findViewById(R.id.v2_update_new_version_code)).setText(
+                getString(R.string.update_version_code, update.getNewVersionCode()));
+
+        int minimumSdk = update.getMinimumSdkVersion();
+        String minimum = minimumSdk <= 0
+                ? getString(R.string.update_sdk_unrestricted)
+                : getAndroidVersionLabel(minimumSdk);
+        ((TextView) details.findViewById(R.id.v2_update_minimum_android)).setText(minimum);
+        ((TextView) details.findViewById(R.id.v2_update_target_android)).setText(
+                getAndroidVersionLabel(update.getTargetSdkVersion()));
+    }
+
+    private String getVersionLabel(String versionName, long versionCode) {
+        if (versionName != null && !versionName.isEmpty()) {
+            return versionName;
+        }
+        return versionCode > 0 ? String.valueOf(versionCode)
+                : getString(R.string.update_version_unknown);
+    }
+
+    private String getAndroidVersionLabel(int sdkVersion) {
+        final String version = switch (sdkVersion) {
+            case Build.VERSION_CODES.Q -> "10";
+            case Build.VERSION_CODES.R -> "11";
+            case Build.VERSION_CODES.S -> "12";
+            case Build.VERSION_CODES.S_V2 -> "12L";
+            case Build.VERSION_CODES.TIRAMISU -> "13";
+            case Build.VERSION_CODES.UPSIDE_DOWN_CAKE -> "14";
+            case Build.VERSION_CODES.VANILLA_ICE_CREAM -> "15";
+            case Build.VERSION_CODES.BAKLAVA -> "16";
+            default -> null;
+        };
+        return version == null ? "API " + sdkVersion
+                : getString(R.string.update_android_version, version, sdkVersion);
     }
 
     /**

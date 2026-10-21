@@ -736,7 +736,7 @@ class InstallRepository(private val context: Context) : EventResultPersister.Eve
             getUpdateOwners(newPackageInfo, userActionReason, isAppUpdating)
 
         return InstallUserActionRequired(USER_ACTION_REASON_INSTALL_CONFIRMATION, appSnippet,
-            isAppUpdating, existingUpdateOwner, requestedUpdateOwner)
+            isAppUpdating, getInstallUpdateDetails(), existingUpdateOwner, requestedUpdateOwner)
     }
 
     /**
@@ -753,7 +753,30 @@ class InstallRepository(private val context: Context) : EventResultPersister.Eve
             getUpdateOwners(newPackageInfo, userActionReason, isAppUpdating)
 
         return InstallUserActionRequired(USER_ACTION_REASON_INSTALL_CONFIRMATION, appSnippet,
-            isAppUpdating, existingUpdateOwner, requestedUpdateOwner)
+            isAppUpdating, getInstallUpdateDetails(), existingUpdateOwner, requestedUpdateOwner)
+    }
+
+    private fun getInstallUpdateDetails(): InstallUpdateDetails? {
+        val incomingPackage = newPackageInfo ?: return null
+        if (!isAppUpdating) return null
+
+        val installedPackage = try {
+            packageManager.getPackageInfo(
+                incomingPackage.packageName,
+                PackageManager.MATCH_UNINSTALLED_PACKAGES
+            )
+        } catch (e: PackageManager.NameNotFoundException) {
+            return null
+        }
+
+        return InstallUpdateDetails(
+            installedVersionName = installedPackage.versionName,
+            installedVersionCode = installedPackage.longVersionCode,
+            newVersionName = incomingPackage.versionName,
+            newVersionCode = incomingPackage.longVersionCode,
+            minimumSdkVersion = incomingPackage.applicationInfo?.minSdkVersion ?: 0,
+            targetSdkVersion = incomingPackage.applicationInfo?.targetSdkVersion ?: 0,
+        )
     }
 
     private fun getUpdateOwners(

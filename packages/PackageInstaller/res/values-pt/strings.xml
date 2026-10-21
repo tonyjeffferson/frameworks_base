@@ -130,4 +130,13 @@
     <string name="unarchive_clear_storage_button" msgid="1549537154535608744">"Limpar armazenamento"</string>
     <string name="unarchive_settings_button" msgid="3504171760009177425">"Configurações"</string>
     <string name="close" msgid="5214897374055647996">"Fechar"</string>
+    <string name="update_details_title">Detalhes da atualização</string>
+    <string name="update_installed_label">Versão instalada</string>
+    <string name="update_new_label">Nova versão</string>
+    <string name="update_version_code">Código %1$d</string>
+    <string name="update_minimum_android_label">Android mínimo</string>
+    <string name="update_target_android_label">Android alvo</string>
+    <string name="update_version_unknown">Desconhecida</string>
+    <string name="update_sdk_unrestricted">Sem mínimo</string>
+    <string name="update_android_version">Android %1$s · API %2$d</string>
 </resources>
