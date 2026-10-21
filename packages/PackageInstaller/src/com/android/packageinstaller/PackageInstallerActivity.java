@@ -40,6 +40,7 @@ import android.content.pm.PackageManager.ApplicationInfoFlags;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.graphics.drawable.BitmapDrawable;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -153,6 +154,7 @@ public class PackageInstallerActivity extends Activity {
 
         if (mAppInfo != null) {
             viewToEnable = mDialog.requireViewById(R.id.install_confirm_question_update);
+            bindUpdateDetails();
 
             final CharSequence existingUpdateOwnerLabel = getExistingUpdateOwnerLabel();
             final CharSequence requestedUpdateOwnerLabel =
@@ -180,6 +182,68 @@ public class PackageInstallerActivity extends Activity {
         mEnableOk = true;
         mOk.setEnabled(true);
         mOk.setFilterTouchesWhenObscured(true);
+    }
+
+    private void bindUpdateDetails() {
+        final View details = mDialog.requireViewById(R.id.update_details);
+        details.setVisibility(View.VISIBLE);
+
+        final PackageInfo installedPackage;
+        try {
+            installedPackage = mPm.getPackageInfo(mPkgInfo.packageName,
+                    PackageManager.MATCH_UNINSTALLED_PACKAGES);
+        } catch (NameNotFoundException e) {
+            // Archived packages have no installed version to compare.
+            details.setVisibility(View.GONE);
+            return;
+        }
+
+        final String installedVersion = getVersionLabel(installedPackage);
+        final String newVersion = getVersionLabel(mPkgInfo);
+        ((TextView) details.findViewById(R.id.update_current_version)).setText(
+                installedVersion);
+        ((TextView) details.findViewById(R.id.update_current_version_code)).setText(
+                getString(R.string.update_version_code,
+                        installedPackage.getLongVersionCode()));
+        ((TextView) details.findViewById(R.id.update_new_version)).setText(
+                newVersion);
+        ((TextView) details.findViewById(R.id.update_new_version_code)).setText(
+                getString(R.string.update_version_code, mPkgInfo.getLongVersionCode()));
+
+        final int minSdk = mPkgInfo.applicationInfo.minSdkVersion;
+        final int targetSdk = mPkgInfo.applicationInfo.targetSdkVersion;
+        final String minimum = minSdk <= 0
+                ? getString(R.string.update_sdk_unrestricted) : getAndroidVersionLabel(minSdk);
+        ((TextView) details.findViewById(R.id.update_minimum_android)).setText(minimum);
+        ((TextView) details.findViewById(R.id.update_target_android)).setText(
+                getAndroidVersionLabel(targetSdk));
+    }
+
+    private String getAndroidVersionLabel(int sdkVersion) {
+        final String version = switch (sdkVersion) {
+            case Build.VERSION_CODES.Q -> "10";
+            case Build.VERSION_CODES.R -> "11";
+            case Build.VERSION_CODES.S -> "12";
+            case Build.VERSION_CODES.S_V2 -> "12L";
+            case Build.VERSION_CODES.TIRAMISU -> "13";
+            case Build.VERSION_CODES.UPSIDE_DOWN_CAKE -> "14";
+            case Build.VERSION_CODES.VANILLA_ICE_CREAM -> "15";
+            case Build.VERSION_CODES.BAKLAVA -> "16";
+            default -> null;
+        };
+        return version == null
+                ? "API " + sdkVersion
+                : getString(R.string.update_android_version, version, sdkVersion);
+    }
+
+    private String getVersionLabel(PackageInfo packageInfo) {
+        if (!TextUtils.isEmpty(packageInfo.versionName)) {
+            return packageInfo.versionName;
+        }
+        if (packageInfo.getLongVersionCode() > 0) {
+            return String.valueOf(packageInfo.getLongVersionCode());
+        }
+        return getString(R.string.update_version_unknown);
     }
 
     private CharSequence getExistingUpdateOwnerLabel() {
