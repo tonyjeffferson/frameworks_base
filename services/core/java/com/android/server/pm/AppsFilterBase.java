@@ -106,6 +106,7 @@ public abstract class AppsFilterBase implements AppsFilterSnapshot {
             "com.solohsu.android.edxp.manager",
             "org.meowcat.edxposed.manager",
             "org.lsposed.manager",
+            "org.lsposed.corepatch",
             "cc.madkite.freedom",
             "com.ramdroid.appquarantine",
             "com.ramdroid.appquarantinepro",
