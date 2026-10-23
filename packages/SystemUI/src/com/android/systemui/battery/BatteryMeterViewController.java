@@ -59,6 +59,7 @@ public class BatteryMeterViewController extends ViewController<BatteryMeterView>
     private final BatteryController mBatteryController;
 
     private final String mSlotBattery;
+    private static final String UNIFIED_STATUS_SETTING = "unified_status_indicator";
     private final SettingObserver mSettingObserver;
     private final UserTracker mUserTracker;
     private final StatusBarLocation mLocation;
@@ -74,10 +75,14 @@ public class BatteryMeterViewController extends ViewController<BatteryMeterView>
     private final TunerService.Tunable mTunable = new TunerService.Tunable() {
         @Override
         public void onTuningChanged(String key, String newValue) {
-            if (StatusBarIconController.ICON_HIDE_LIST.equals(key)) {
-                ArraySet<String> icons = StatusBarIconController.getIconHideList(
-                        getContext(), newValue);
-                mView.setVisibility(icons.contains(mSlotBattery) ? View.GONE : View.VISIBLE);
+            if (StatusBarIconController.ICON_HIDE_LIST.equals(key)
+                    || UNIFIED_STATUS_SETTING.equals(key)) {
+                ArraySet<String> icons = StatusBarIconController.getIconHideList(getContext(),
+                        mTunerService.getValue(StatusBarIconController.ICON_HIDE_LIST));
+                boolean unifiedStatusEnabled = TunerService.parseInteger(
+                        mTunerService.getValue(UNIFIED_STATUS_SETTING), 0) != 0;
+                mView.setVisibility(icons.contains(mSlotBattery) || unifiedStatusEnabled
+                        ? View.GONE : View.VISIBLE);
             }
         }
     };
@@ -197,7 +202,8 @@ public class BatteryMeterViewController extends ViewController<BatteryMeterView>
             return;
         }
 
-        mTunerService.addTunable(mTunable, StatusBarIconController.ICON_HIDE_LIST);
+        mTunerService.addTunable(
+                mTunable, StatusBarIconController.ICON_HIDE_LIST, UNIFIED_STATUS_SETTING);
         mIsSubscribedForTunerUpdates = true;
     }
 

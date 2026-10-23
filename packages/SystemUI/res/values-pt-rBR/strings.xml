@@ -19,6 +19,7 @@
 
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="unified_status_indicator_content_description">Status da bateria, rede e sistema</string>
     <string name="app_label" msgid="4811759950673118541">"Interface do sistema"</string>
     <string name="battery_low_title" msgid="5319680173344341779">"Ativar Economia de bateria?"</string>
     <string name="battery_low_description" msgid="7848989602036547056">"Você tem <xliff:g id="PERCENTAGE">%s</xliff:g> de bateria. A economia de bateria ativa o tema escuro, restringe atividades em segundo plano e atrasa notificações."</string>

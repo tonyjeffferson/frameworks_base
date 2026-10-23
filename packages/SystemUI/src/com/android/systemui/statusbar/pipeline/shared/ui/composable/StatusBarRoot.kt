@@ -34,6 +34,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentSize
@@ -119,6 +120,7 @@ import com.android.systemui.statusbar.pipeline.shared.ui.binder.HomeStatusBarTou
 import com.android.systemui.statusbar.pipeline.shared.ui.binder.HomeStatusBarViewBinder
 import com.android.systemui.statusbar.pipeline.shared.ui.view.SystemStatusIconsLayoutHelper
 import com.android.systemui.statusbar.pipeline.shared.ui.viewmodel.HomeStatusBarViewModel
+import com.android.systemui.lunaris.unifiedstatus.UnifiedStatusIndicatorView
 import com.android.systemui.statusbar.pipeline.shared.ui.viewmodel.HomeStatusBarViewModel.HomeStatusBarViewModelFactory
 import com.android.systemui.statusbar.policy.Clock
 import com.android.systemui.statusbar.systemstatusicons.SystemStatusIconsInCompose
@@ -679,30 +681,34 @@ private fun addBatteryComposable(
 ) {
     val batteryComposeView =
         ComposeView(phoneStatusBarView.context).apply {
+            id = R.id.unified_status_battery_composable_view
             setContent {
-                if (RudimentaryBattery.isEnabled) {
-                    BatteryWithChargeStatus(
-                        viewModelFactory = statusBarViewModel.batteryNextToPercentViewModel,
-                        isDarkProvider = { statusBarViewModel.areaDark },
-                        showPercentMode = ShowPercentMode.FollowSetting,
-                        modifier = Modifier.sysUiResTagContainer().wrapContentSize(),
-                    )
-                } else {
-                    val height =
-                        with(LocalDensity.current) {
-                            BatteryViewModel.getStatusBarBatteryHeight(LocalContext.current).toDp()
-                        }
-                    val viewModel =
-                        rememberViewModel(traceName = "UnifiedBattery") {
-                            statusBarViewModel.unifiedBatteryViewModel.create()
-                        }
-                    BatteryWithPercent(
-                        modifier =
-                            Modifier.sysUiResTagContainer().wrapContentWidth(),
-                        viewModel = viewModel,
-                        isDarkProvider = { statusBarViewModel.areaDark },
-                        showPercent = viewModel.isBatteryPercentSettingEnabled,
-                    )
+                val unifiedStatusEnabled by rememberUnifiedStatusEnabled()
+                if (!unifiedStatusEnabled) {
+                    if (RudimentaryBattery.isEnabled) {
+                        BatteryWithChargeStatus(
+                            viewModelFactory = statusBarViewModel.batteryNextToPercentViewModel,
+                            isDarkProvider = { statusBarViewModel.areaDark },
+                            showPercentMode = ShowPercentMode.FollowSetting,
+                            modifier = Modifier.sysUiResTagContainer().wrapContentSize(),
+                        )
+                    } else {
+                        val height =
+                            with(LocalDensity.current) {
+                                BatteryViewModel.getStatusBarBatteryHeight(LocalContext.current).toDp()
+                            }
+                        val viewModel =
+                            rememberViewModel(traceName = "UnifiedBattery") {
+                                statusBarViewModel.unifiedBatteryViewModel.create()
+                            }
+                        BatteryWithPercent(
+                            modifier =
+                                Modifier.sysUiResTagContainer().wrapContentWidth(),
+                            viewModel = viewModel,
+                            isDarkProvider = { statusBarViewModel.areaDark },
+                            showPercent = viewModel.isBatteryPercentSettingEnabled,
+                        )
+                    }
                 }
             }
         }
@@ -734,6 +740,10 @@ private fun addEndSideComposable(
         ComposeView(phoneStatusBarView.context).apply {
             setContent {
                 val endSideWidth by rememberViewWidthAsState(endSideContainerView)
+                val blockedIconSlots by
+                    statusBarViewModel.iconBlockList.collectAsState(initial = emptyList())
+                val blockedIconSlotSet = remember(blockedIconSlots) { blockedIconSlots.toSet() }
+                val unifiedStatusEnabled by rememberUnifiedStatusEnabled()
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -744,32 +754,36 @@ private fun addEndSideComposable(
                     SystemStatusIconsContainer(
                         viewModelFactory = statusBarViewModel.systemStatusIconsViewModelFactory,
                         isDark = statusBarViewModel.areaDark,
+                        blockedIconSlots = blockedIconSlotSet,
                         modifier = Modifier.weight(1f, fill = false),
                     )
 
-                    if (RudimentaryBattery.isEnabled) {
-                        BatteryWithChargeStatus(
-                            viewModelFactory = statusBarViewModel.batteryNextToPercentViewModel,
-                            isDarkProvider = { statusBarViewModel.areaDark },
-                            showPercentMode = ShowPercentMode.FollowSetting,
-                            modifier = Modifier.sysUiResTagContainer().wrapContentSize(),
-                        )
-                    } else {
-                        val height =
-                            with(LocalDensity.current) {
-                                BatteryViewModel.getStatusBarBatteryHeight(LocalContext.current)
-                                    .toDp()
-                            }
-                        val viewModel =
-                            rememberViewModel(traceName = "UnifiedBattery") {
-                                statusBarViewModel.unifiedBatteryViewModel.create()
-                            }
-                        BatteryWithPercent(
-                            viewModel = viewModel,
-                            isDarkProvider = { statusBarViewModel.areaDark },
-                            modifier =
-                                Modifier.sysUiResTagContainer().wrapContentWidth(),
-                            showPercent = viewModel.isBatteryPercentSettingEnabled,
+                    if (!unifiedStatusEnabled && SLOT_BATTERY !in blockedIconSlotSet) {
+                        if (RudimentaryBattery.isEnabled) {
+                            BatteryWithChargeStatus(
+                                viewModelFactory = statusBarViewModel.batteryNextToPercentViewModel,
+                                isDarkProvider = { statusBarViewModel.areaDark },
+                                showPercentMode = ShowPercentMode.FollowSetting,
+                                modifier = Modifier.sysUiResTagContainer().wrapContentSize(),
+                            )
+                        } else {
+                            val viewModel =
+                                rememberViewModel(traceName = "UnifiedBattery") {
+                                    statusBarViewModel.unifiedBatteryViewModel.create()
+                                }
+                            BatteryWithPercent(
+                                viewModel = viewModel,
+                                isDarkProvider = { statusBarViewModel.areaDark },
+                                modifier = Modifier.sysUiResTagContainer().wrapContentWidth(),
+                                showPercent = viewModel.isBatteryPercentSettingEnabled,
+                            )
+                        }
+                    }
+
+                    if (unifiedStatusEnabled) {
+                        AndroidView(
+                            factory = { context -> UnifiedStatusIndicatorView(context) },
+                            modifier = Modifier.size(28.dp),
                         )
                     }
                 }
@@ -782,9 +796,47 @@ private fun addEndSideComposable(
 }
 
 @Composable
+private fun rememberUnifiedStatusEnabled(): androidx.compose.runtime.State<Boolean> {
+    val context = LocalContext.current
+    val enabled = remember {
+        mutableStateOf(
+            Settings.Secure.getIntForUser(
+                context.contentResolver,
+                UnifiedStatusIndicatorView.SETTING,
+                0,
+                UserHandle.USER_CURRENT,
+            ) != 0
+        )
+    }
+    DisposableEffect(context) {
+        val observer =
+            object : ContentObserver(Handler(Looper.getMainLooper())) {
+                override fun onChange(selfChange: Boolean) {
+                    enabled.value =
+                        Settings.Secure.getIntForUser(
+                            context.contentResolver,
+                            UnifiedStatusIndicatorView.SETTING,
+                            0,
+                            UserHandle.USER_CURRENT,
+                        ) != 0
+                }
+            }
+        context.contentResolver.registerContentObserver(
+            Settings.Secure.getUriFor(UnifiedStatusIndicatorView.SETTING),
+            false,
+            observer,
+            UserHandle.USER_ALL,
+        )
+        onDispose { context.contentResolver.unregisterContentObserver(observer) }
+    }
+    return enabled
+}
+
+@Composable
 private fun SystemStatusIconsContainer(
     viewModelFactory: SystemStatusIconsViewModel.Factory,
     isDark: IsAreaDark,
+    blockedIconSlots: Set<String> = emptySet(),
     modifier: Modifier = Modifier,
 ) {
     var bounds by remember { mutableStateOf(Rect()) }
@@ -792,6 +844,7 @@ private fun SystemStatusIconsContainer(
     SystemStatusIcons(
         viewModelFactory = viewModelFactory,
         tint = tint,
+        blockedIconSlots = blockedIconSlots,
         modifier =
             modifier.onLayoutRectChanged { relativeLayoutBounds ->
                 bounds =

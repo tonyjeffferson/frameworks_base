@@ -543,6 +543,7 @@ public class KeyguardStatusBarView extends RelativeLayout {
 
         mDarkChange.setValue(new DarkChange(mEmptyTintRect, intensity, iconColor));
         applyDarkness(R.id.battery, mEmptyTintRect, intensity, iconColor);
+        applyDarkness(R.id.unified_status_indicator, mEmptyTintRect, intensity, iconColor);
         applyDarkness(R.id.clock, mEmptyTintRect, intensity, iconColor);
     }
 

@@ -28,6 +28,8 @@ frame when animating QS <-> QQS transition
     android:minHeight="@dimen/large_screen_shade_header_min_height"
     android:clickable="false"
     android:focusable="true"
+    android:clipChildren="false"
+    android:clipToPadding="false"
     android:paddingLeft="@dimen/qs_panel_padding"
     android:paddingRight="@dimen/qs_panel_padding"
     android:visibility="gone"
@@ -132,6 +134,8 @@ frame when animating QS <-> QQS transition
         android:id="@+id/shade_header_system_icons"
         android:layout_width="wrap_content"
         android:layout_height="@dimen/shade_header_system_icons_height"
+        android:clipChildren="false"
+        android:clipToPadding="false"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="@id/privacy_container"
         app:layout_constraintTop_toTopOf="@id/clock">
@@ -139,6 +143,8 @@ frame when animating QS <-> QQS transition
             android:id="@+id/hover_system_icons_container"
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
+            android:clipChildren="false"
+            android:clipToPadding="false"
             android:layout_gravity="end|center_vertical"
             android:gravity="center_vertical"
             android:paddingStart="@dimen/hover_system_icons_container_padding_start"
@@ -159,6 +165,12 @@ frame when animating QS <-> QQS transition
                 android:layout_height="wrap_content"
                 android:visibility="gone"
                 app:textAppearance="@style/TextAppearance.QS.Status" />
+
+            <com.android.systemui.lunaris.unifiedstatus.UnifiedStatusIndicatorView
+                android:id="@+id/unified_status_indicator"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:visibility="gone" />
         </LinearLayout>
     </FrameLayout>
 

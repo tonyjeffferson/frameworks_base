@@ -45,6 +45,7 @@ import com.android.systemui.statusbar.systemstatusicons.ui.viewmodel.SystemStatu
 fun SystemStatusIcons(
     viewModelFactory: SystemStatusIconsViewModel.Factory,
     tint: Color,
+    blockedIconSlots: Set<String> = emptySet(),
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -58,7 +59,7 @@ fun SystemStatusIcons(
             modifier = modifier.sysuiResTag("statusIcons"),
         ) {
             viewModel.iconViewModels
-                .filter { it.visible }
+                .filter { it.visible && it.slotName !in blockedIconSlots }
                 .forEach { iconViewModel ->
                     // TODO(414653733): Make sure icons are sized uniformly.
                     when (iconViewModel) {

@@ -82,8 +82,11 @@ public class StatusBarIconControllerImpl implements Tunable,
     private final StatusBarIconList mStatusBarIconList;
     private final ArrayList<IconManager> mIconGroups = new ArrayList<>();
     private final ArraySet<String> mIconHideList = new ArraySet<>();
+    private final ArraySet<String> mUserIconHideList = new ArraySet<>();
     private final StatusBarPipelineFlags mStatusBarPipelineFlags;
     private final Context mContext;
+    private final TunerService mTunerService;
+    private boolean mUnifiedStatusEnabled;
 
     /**  */
     @Inject
@@ -100,6 +103,7 @@ public class StatusBarIconControllerImpl implements Tunable,
     ) {
         mStatusBarIconList = statusBarIconList;
         mContext = context;
+        mTunerService = tunerService;
         mStatusBarPipelineFlags = statusBarPipelineFlags;
 
         if (StatusBarConnectedDisplays.isEnabled()) {
@@ -108,7 +112,7 @@ public class StatusBarIconControllerImpl implements Tunable,
             configurationController.addCallback(this);
         }
         commandQueue.addCallback(mCommandQueueCallbacks);
-        tunerService.addTunable(this, ICON_HIDE_LIST);
+        tunerService.addTunable(this, ICON_HIDE_LIST, "unified_status_indicator");
         demoModeController.addCallback(this);
         dumpManager.registerDumpable(getClass().getSimpleName(), this);
 
@@ -201,11 +205,28 @@ public class StatusBarIconControllerImpl implements Tunable,
     /**  */
     @Override
     public void onTuningChanged(String key, String newValue) {
-        if (!ICON_HIDE_LIST.equals(key)) {
+        if ("unified_status_indicator".equals(key)) {
+            mUnifiedStatusEnabled = TunerService.parseInteger(newValue, 0) != 0;
+            newValue = mTunerService.getValue(ICON_HIDE_LIST);
+        } else if (ICON_HIDE_LIST.equals(key)) {
+            mUserIconHideList.clear();
+            mUserIconHideList.addAll(StatusBarIconController.getIconHideList(mContext, newValue));
+        } else {
             return;
         }
         mIconHideList.clear();
-        mIconHideList.addAll(StatusBarIconController.getIconHideList(mContext, newValue));
+        mIconHideList.addAll(mUserIconHideList);
+        if (mUnifiedStatusEnabled) {
+            mIconHideList.add(mContext.getString(com.android.internal.R.string.status_bar_airplane));
+            mIconHideList.add(mContext.getString(com.android.internal.R.string.status_bar_wifi));
+            mIconHideList.add(mContext.getString(com.android.internal.R.string.status_bar_mobile));
+            mIconHideList.add(mContext.getString(com.android.internal.R.string.status_bar_stacked_mobile));
+            mIconHideList.add(mContext.getString(com.android.internal.R.string.status_bar_zen));
+            mIconHideList.add(mContext.getString(com.android.internal.R.string.status_bar_data_connection));
+            mIconHideList.add(mContext.getString(com.android.internal.R.string.status_bar_phone_signal));
+            mIconHideList.add(mContext.getString(com.android.internal.R.string.status_bar_phone_evdo_signal));
+            mIconHideList.add(mContext.getString(com.android.internal.R.string.status_bar_battery));
+        }
         List<Slot> currentSlots = mStatusBarIconList.getSlots();
         ArrayMap<Slot, List<StatusBarIconHolder>> slotsToReAdd = new ArrayMap<>();
 

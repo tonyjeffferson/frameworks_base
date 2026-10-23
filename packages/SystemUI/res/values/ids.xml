@@ -304,6 +304,7 @@
 
     <!-- id for the composable battery meter (see UnifiedBattery.kt) -->
     <item type="id" name="battery_meter_composable_view" />
+    <item type="id" name="unified_status_battery_composable_view" />
 
     <!-- Used for animation guard tag to throttle number of reported logs. -->
     <item type="id" name="screen_off_animation_guard_set" />
