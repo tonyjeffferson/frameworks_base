@@ -87,6 +87,7 @@ import com.android.systemui.statusbar.phone.fragment.StatusBarIconBlocklistKt;
 import com.android.systemui.statusbar.phone.fragment.StatusBarSystemEventDefaultAnimator;
 import com.android.systemui.statusbar.phone.ui.StatusBarIconController;
 import com.android.systemui.statusbar.phone.ui.TintedIconManager;
+import com.android.systemui.lunaris.unifiedstatus.UnifiedStatusIndicatorView;
 import com.android.systemui.statusbar.pipeline.battery.ui.binder.BatteryWithPercentViewBinder;
 import com.android.systemui.statusbar.pipeline.battery.ui.binder.UnifiedBatteryViewBinder;
 import com.android.systemui.statusbar.pipeline.battery.ui.composable.ShowPercentMode;
@@ -124,6 +125,7 @@ public class KeyguardStatusBarViewController extends ViewController<KeyguardStat
 
     private static final String STATUSBAR_EXTRA_PADDING_START =
             "system:" + Settings.System.STATUSBAR_EXTRA_PADDING_START;
+    private static final String UNIFIED_STATUS_SETTING = "unified_status_indicator";
     private static final String STATUSBAR_EXTRA_PADDING_TOP =
             "system:" + Settings.System.STATUSBAR_EXTRA_PADDING_TOP;
     private static final String STATUSBAR_EXTRA_PADDING_END =
@@ -185,6 +187,11 @@ public class KeyguardStatusBarViewController extends ViewController<KeyguardStat
     private final KeyguardDynamicIslandViewBinder mDynamicIslandViewBinder;
 
     @Nullable private ComposeView mBatteryComposeView;
+    private boolean mUnifiedStatusEnabled;
+    private boolean mBatteryVisibilitySaved;
+    private int mBatteryVisibilityBeforeUnifiedStatus = View.VISIBLE;
+    private boolean mComposeBatteryVisibilitySaved;
+    private int mComposeBatteryVisibilityBeforeUnifiedStatus = View.VISIBLE;
     private ViewGroup mSystemIconsContainer;
     private final StatusOverlayHoverListenerFactory mStatusOverlayHoverListenerFactory;
 
@@ -541,9 +548,16 @@ public class KeyguardStatusBarViewController extends ViewController<KeyguardStat
                 false,
                 mAccentColorSettingObserver,
                 UserHandle.USER_ALL);
+        mSecureSettings.registerContentObserverForUserSync(
+                UNIFIED_STATUS_SETTING,
+                false,
+                mUnifiedStatusSettingObserver,
+                UserHandle.USER_ALL);
+        refreshUnifiedStatusSetting();
         mTunerService.addTunable(this, STATUSBAR_EXTRA_PADDING_START);
         mTunerService.addTunable(this, STATUSBAR_EXTRA_PADDING_TOP);
         mTunerService.addTunable(this, STATUSBAR_EXTRA_PADDING_END);
+        mTunerService.addTunable(this, UNIFIED_STATUS_SETTING);
         updateUserSwitcher();
         onThemeChanged();
         if (!Flags.glanceableHubV2()) {
@@ -580,6 +594,7 @@ public class KeyguardStatusBarViewController extends ViewController<KeyguardStat
                 mBatteryComposeView = createAndBindComposeBattery();
             }
             mSystemIconsContainer.addView(mBatteryComposeView, -1);
+            updateKeyguardBatteryVisibility(mUnifiedStatusEnabled);
             // Set the margins for the system icons appropriately
             AlphaOptimizedLinearLayout systemIcons =
                     mSystemIconsContainer.findViewById(R.id.statusIcons);
@@ -589,6 +604,9 @@ public class KeyguardStatusBarViewController extends ViewController<KeyguardStat
 
     private ComposeView createAndBindComposeBattery() {
         ComposeView batteryComposeView = new ComposeView(mContext);
+        // This Compose battery is created dynamically and otherwise has no stable resource ID.
+        // Give it one so Unified Status can reliably hide it on the keyguard after it is attached.
+        batteryComposeView.setId(R.id.unified_status_battery_composable_view);
         if (RudimentaryBattery.isEnabled()) {
             BatteryWithPercentViewBinder.bind(
                     batteryComposeView,
@@ -617,6 +635,7 @@ public class KeyguardStatusBarViewController extends ViewController<KeyguardStat
         mDisableStateTracker.stopTracking(mCommandQueue);
         mSecureSettings.unregisterContentObserverSync(mVolumeSettingObserver);
         mSecureSettings.unregisterContentObserverSync(mAccentColorSettingObserver);
+        mSecureSettings.unregisterContentObserverSync(mUnifiedStatusSettingObserver);
         if (mTintedIconManager != null) {
             mStatusBarIconController.removeIconGroup(mTintedIconManager);
         }
@@ -632,6 +651,12 @@ public class KeyguardStatusBarViewController extends ViewController<KeyguardStat
     @Override
     public void onTuningChanged(String key, String newValue) {
         switch (key) {
+            case UNIFIED_STATUS_SETTING:
+                // This option lives in Settings.Secure and is observed directly above. Read its
+                // authoritative value here as well; TunerService may deliver a null cached value
+                // when attached, which would otherwise re-show the battery on keyguard.
+                refreshUnifiedStatusSetting();
+                break;
             case STATUSBAR_EXTRA_PADDING_START:
             case STATUSBAR_EXTRA_PADDING_TOP:
             case STATUSBAR_EXTRA_PADDING_END:
@@ -671,6 +696,51 @@ public class KeyguardStatusBarViewController extends ViewController<KeyguardStat
         } else {
             mBatteryController.removeCallback(mBatteryStateChangeCallback);
         }
+    }
+
+    private void updateKeyguardBatteryVisibility(boolean unifiedStatusEnabled) {
+        View batteryView = mView.findViewById(R.id.battery);
+        setUnifiedStatusBatteryVisibility(batteryView, unifiedStatusEnabled);
+
+        if (mBatteryComposeView != null) {
+            if (unifiedStatusEnabled && mBatteryComposeView.getParent() == null) {
+                // The new status icon layout attaches this Compose battery after the initial
+                // setting read; preserve the hidden state until it is inserted.
+                mComposeBatteryVisibilityBeforeUnifiedStatus = View.VISIBLE;
+                mComposeBatteryVisibilitySaved = true;
+            }
+            if (unifiedStatusEnabled) {
+                if (!mComposeBatteryVisibilitySaved) {
+                    mComposeBatteryVisibilityBeforeUnifiedStatus = mBatteryComposeView.getVisibility();
+                    mComposeBatteryVisibilitySaved = true;
+                }
+                mBatteryComposeView.setVisibility(View.GONE);
+            } else if (mComposeBatteryVisibilitySaved) {
+                mBatteryComposeView.setVisibility(mComposeBatteryVisibilityBeforeUnifiedStatus);
+                mComposeBatteryVisibilitySaved = false;
+            }
+        }
+    }
+
+    private void setUnifiedStatusBatteryVisibility(View batteryView, boolean unifiedStatusEnabled) {
+        if (batteryView == null) return;
+        if (unifiedStatusEnabled) {
+            if (!mBatteryVisibilitySaved) {
+                mBatteryVisibilityBeforeUnifiedStatus = batteryView.getVisibility();
+                mBatteryVisibilitySaved = true;
+            }
+            batteryView.setVisibility(View.GONE);
+        } else if (mBatteryVisibilitySaved) {
+            batteryView.setVisibility(mBatteryVisibilityBeforeUnifiedStatus);
+            mBatteryVisibilitySaved = false;
+        }
+    }
+
+    private void refreshUnifiedStatusSetting() {
+        mUnifiedStatusEnabled = mSecureSettings.getIntForUser(
+                UNIFIED_STATUS_SETTING, 0, UserHandle.USER_CURRENT) != 0;
+        updateKeyguardBatteryVisibility(mUnifiedStatusEnabled);
+        updateBlockedIcons();
     }
 
     /** Set the view to have no top clipping. */
@@ -968,6 +1038,13 @@ public class KeyguardStatusBarViewController extends ViewController<KeyguardStat
         public void onChange(boolean selfChange) {
             // Re-apply icon colors when accent color setting changes
             onThemeChanged();
+        }
+    };
+
+    private final ContentObserver mUnifiedStatusSettingObserver = new ContentObserver(null) {
+        @Override
+        public void onChange(boolean selfChange) {
+            refreshUnifiedStatusSetting();
         }
     };
 

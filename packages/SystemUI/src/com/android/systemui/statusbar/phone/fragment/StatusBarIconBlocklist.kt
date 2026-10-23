@@ -46,7 +46,27 @@ fun getStatusBarIconBlocklist(
             UserHandle.USER_CURRENT) == 0
 
     // Filter out vibrate icon from the blocklist if the setting is on
-    return blocklist.filter { icon ->
+    val filteredBlocklist = blocklist.filter { icon ->
         !icon.equals(vibrateIconSlot) || showVibrateIcon
     }
+
+    val unifiedStatusEnabled = settings.getIntForUser(
+            "unified_status_indicator",
+            0,
+            UserHandle.USER_CURRENT) != 0
+    if (!unifiedStatusEnabled) return filteredBlocklist
+
+    val unifiedStatusManagedSlots = listOf(
+        R.string.status_bar_airplane,
+        R.string.status_bar_wifi,
+        R.string.status_bar_mobile,
+        R.string.status_bar_stacked_mobile,
+        R.string.status_bar_zen,
+        R.string.status_bar_battery,
+        R.string.status_bar_data_connection,
+        R.string.status_bar_phone_signal,
+        R.string.status_bar_phone_evdo_signal,
+    ).map(res::getString)
+
+    return (filteredBlocklist + unifiedStatusManagedSlots).distinct()
 }

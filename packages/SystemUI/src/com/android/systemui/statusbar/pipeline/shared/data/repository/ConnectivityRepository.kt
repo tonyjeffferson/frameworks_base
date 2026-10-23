@@ -38,6 +38,7 @@ import com.android.systemui.dagger.qualifiers.Application
 import com.android.systemui.dump.DumpManager
 import com.android.systemui.res.R
 import com.android.systemui.statusbar.phone.ui.StatusBarIconController
+import com.android.systemui.shared.settings.data.repository.SecureSettingsRepository
 import com.android.systemui.statusbar.pipeline.shared.ConnectivityInputLogger
 import com.android.systemui.statusbar.pipeline.shared.data.model.ConnectivitySlot
 import com.android.systemui.statusbar.pipeline.shared.data.model.ConnectivitySlots
@@ -57,6 +58,7 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.shareIn
@@ -96,6 +98,7 @@ constructor(
     logger: ConnectivityInputLogger,
     @Application scope: CoroutineScope,
     tunerService: TunerService,
+    secureSettingsRepository: SecureSettingsRepository,
 ) : ConnectivityRepository, Dumpable {
     init {
         dumpManager.registerNormalDumpable("ConnectivityRepository", this)
@@ -108,7 +111,7 @@ constructor(
             .asList()
             .toSlotSet(connectivitySlots)
 
-    override val forceHiddenSlots: StateFlow<Set<ConnectivitySlot>> =
+    private val tunerHiddenSlots: StateFlow<Set<ConnectivitySlot>> =
         conflatedCallbackFlow {
                 val callback =
                     object : TunerService.Tunable {
@@ -133,6 +136,25 @@ constructor(
                 started = SharingStarted.WhileSubscribed(),
                 initialValue = defaultHiddenIcons
             )
+
+    override val forceHiddenSlots: StateFlow<Set<ConnectivitySlot>> =
+        combine(
+            tunerHiddenSlots,
+            secureSettingsRepository.boolSetting("unified_status_indicator", false),
+        ) { hiddenSlots, unifiedStatusEnabled ->
+            if (unifiedStatusEnabled) {
+                hiddenSlots + setOf(
+                    ConnectivitySlot.AIRPLANE,
+                    ConnectivitySlot.WIFI,
+                    ConnectivitySlot.MOBILE,
+                )
+            }
+            else hiddenSlots
+        }.stateIn(
+            scope,
+            started = SharingStarted.WhileSubscribed(),
+            initialValue = defaultHiddenIcons,
+        )
 
     private val defaultNetworkCapabilities: SharedFlow<NetworkCapabilities?> =
         conflatedCallbackFlow {

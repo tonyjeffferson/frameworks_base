@@ -81,6 +81,7 @@ import com.android.systemui.statusbar.policy.UserInfoController;
 import com.android.systemui.statusbar.policy.ZenModeController;
 import com.android.systemui.statusbar.policy.domain.interactor.ZenModeInteractor;
 import com.android.systemui.statusbar.policy.domain.model.ZenModeInfo;
+import com.android.systemui.lunaris.unifiedstatus.UnifiedStatusIndicatorView;
 import com.android.systemui.tuner.TunerService;
 import com.android.systemui.util.RingerModeTracker;
 import com.android.systemui.util.kotlin.JavaAdapter;
@@ -375,6 +376,8 @@ public class PhoneStatusBarPolicy
     }
 
     private void onMainActiveModeChanged(@Nullable ZenModeInfo mainActiveMode) {
+        UnifiedStatusIndicatorView.setActiveModeIcon(
+                mainActiveMode != null ? mainActiveMode.getIcon().getDrawable() : null);
         boolean visible = mainActiveMode != null;
         if (visible) {
             // Shape=FIXED_SPACE because mode icons can be from 3P packages and may not be square;

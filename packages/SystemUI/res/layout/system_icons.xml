@@ -47,6 +47,12 @@
         android:visibility="gone"
         systemui:textAppearance="@style/TextAppearance.StatusBar.Default" />
 
+    <com.android.systemui.lunaris.unifiedstatus.UnifiedStatusIndicatorView
+        android:id="@+id/unified_status_indicator"
+        android:layout_width="28dp"
+        android:layout_height="28dp"
+        android:visibility="gone" />
+
     <com.android.keyguard.AlphaOptimizedLinearLayout
         android:id="@+id/right_clock_layout"
         android:layout_width="wrap_content"
