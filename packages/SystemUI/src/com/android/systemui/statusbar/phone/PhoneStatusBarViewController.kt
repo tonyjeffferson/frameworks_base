@@ -20,6 +20,10 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.database.ContentObserver
+import android.os.Handler
+import android.os.Looper
+import android.os.UserHandle
 import android.provider.Settings
 import android.util.Log
 import android.view.Display.DEFAULT_DISPLAY
@@ -34,6 +38,7 @@ import com.android.systemui.Gefingerpoken
 import com.android.systemui.globalactions.GlobalActionsComponent
 import com.android.systemui.battery.BatteryMeterView
 import com.android.systemui.display.dagger.SystemUIDisplaySubcomponent.DisplayAware
+import com.android.systemui.lunaris.unifiedstatus.UnifiedStatusIndicatorView
 import com.android.systemui.plugins.DarkIconDispatcher
 import com.android.systemui.res.R
 import com.android.systemui.scene.shared.flag.SceneContainerFlag
@@ -49,6 +54,7 @@ import com.android.systemui.shade.domain.interactor.PanelExpansionInteractor
 import com.android.systemui.shade.domain.interactor.ShadeModeInteractor
 import com.android.systemui.shade.shared.flag.ShadeWindowGoesAround
 import com.android.systemui.statusbar.core.StatusBarConnectedDisplays
+import com.android.systemui.statusbar.systemstatusicons.SystemStatusIconsInCompose
 import com.android.systemui.statusbar.data.repository.StatusBarConfigurationController
 import com.android.systemui.statusbar.data.repository.StatusBarContentInsetsProviderStore
 import com.android.systemui.statusbar.policy.Clock
@@ -98,6 +104,19 @@ private constructor(
 ) : ViewController<PhoneStatusBarView>(view), TunerService.Tunable {
 
     private lateinit var battery: BatteryMeterView
+    private var batteryVisibilityBeforeUnifiedStatus: Int? = null
+    private var batteryComposableVisibilityBeforeUnifiedStatus: Int? = null
+    private val unifiedStatusBatteryLayoutListener =
+        View.OnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+            updateUnifiedStatusBatteryVisibility()
+        }
+    private val unifiedStatusBatteryObserver =
+        object : ContentObserver(Handler(Looper.getMainLooper())) {
+            override fun onChange(selfChange: Boolean) {
+                updateUnifiedStatusBatteryVisibility()
+            }
+        }
+    private lateinit var unifiedStatusIndicator: UnifiedStatusIndicatorView
     private lateinit var clock: Clock
     private lateinit var clockCenter: Clock
     private lateinit var clockRight: Clock
@@ -207,6 +226,16 @@ private constructor(
         clockCenter = mView.requireViewById(R.id.clock_center)
         clockRight = mView.requireViewById(R.id.clock_right)
         battery = mView.requireViewById(R.id.battery)
+        unifiedStatusIndicator = mView.requireViewById(R.id.unified_status_indicator)
+        unifiedStatusIndicator.setPresentationAllowed(!SystemStatusIconsInCompose.isEnabled)
+        mView.addOnLayoutChangeListener(unifiedStatusBatteryLayoutListener)
+        context.contentResolver.registerContentObserver(
+            Settings.Secure.getUriFor(UnifiedStatusIndicatorView.SETTING),
+            false,
+            unifiedStatusBatteryObserver,
+            UserHandle.USER_ALL,
+        )
+        updateUnifiedStatusBatteryVisibility()
 
         addDarkReceivers()
 
@@ -248,6 +277,36 @@ private constructor(
             IntentFilter(ACTION_SHOW_SYSTEM_ICONS_POPUP),
             Context.RECEIVER_NOT_EXPORTED,
         )
+    }
+
+    private fun updateUnifiedStatusBatteryVisibility() {
+        if (!::battery.isInitialized) return
+        val unifiedStatusEnabled =
+            Settings.Secure.getIntForUser(
+                context.contentResolver,
+                UnifiedStatusIndicatorView.SETTING,
+                0,
+                UserHandle.USER_CURRENT,
+            ) != 0
+        if (unifiedStatusEnabled) {
+            if (batteryVisibilityBeforeUnifiedStatus == null) {
+                batteryVisibilityBeforeUnifiedStatus = battery.visibility
+            }
+            battery.visibility = View.GONE
+            mView.findViewById<View>(R.id.unified_status_battery_composable_view)?.let { composeBattery ->
+                if (batteryComposableVisibilityBeforeUnifiedStatus == null) {
+                    batteryComposableVisibilityBeforeUnifiedStatus = composeBattery.visibility
+                }
+                composeBattery.visibility = View.GONE
+            }
+        } else {
+            batteryVisibilityBeforeUnifiedStatus?.let { battery.visibility = it }
+            batteryVisibilityBeforeUnifiedStatus = null
+            mView.findViewById<View>(R.id.unified_status_battery_composable_view)?.let { composeBattery ->
+                batteryComposableVisibilityBeforeUnifiedStatus?.let { composeBattery.visibility = it }
+            }
+            batteryComposableVisibilityBeforeUnifiedStatus = null
+        }
     }
 
     override fun onTuningChanged(key: String?, newValue: String?) {
@@ -347,6 +406,8 @@ private constructor(
 
     @VisibleForTesting
     public override fun onViewDetached() {
+        mView.removeOnLayoutChangeListener(unifiedStatusBatteryLayoutListener)
+        context.contentResolver.unregisterContentObserver(unifiedStatusBatteryObserver)
         systemIconsPopupController?.destroy()
         systemIconsPopupController = null
         tunerService.removeTunable(this)
@@ -423,6 +484,7 @@ private constructor(
 
     private fun addDarkReceivers() {
         darkIconDispatcher.addDarkReceiver(battery)
+        darkIconDispatcher.addDarkReceiver(unifiedStatusIndicator)
         darkIconDispatcher.addDarkReceiver(clock)
         darkIconDispatcher.addDarkReceiver(clockCenter)
         darkIconDispatcher.addDarkReceiver(clockRight)
@@ -430,6 +492,7 @@ private constructor(
 
     private fun removeDarkReceivers() {
         darkIconDispatcher.removeDarkReceiver(battery)
+        darkIconDispatcher.removeDarkReceiver(unifiedStatusIndicator)
         darkIconDispatcher.removeDarkReceiver(clock)
         darkIconDispatcher.removeDarkReceiver(clockCenter)
         darkIconDispatcher.removeDarkReceiver(clockRight)

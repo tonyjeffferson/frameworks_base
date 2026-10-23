@@ -48,6 +48,9 @@ constructor(
     private val shouldShowVibrateIcon: Flow<Boolean> =
         secureSettingsRepository.boolSetting(Settings.Secure.STATUS_BAR_SHOW_VIBRATE_ICON, false)
 
+    private val unifiedStatusEnabled: Flow<Boolean> =
+        secureSettingsRepository.boolSetting("unified_status_indicator", false)
+
     private val tunerBlockedIcons: Flow<Set<String>> =
         secureSettingsRepository
             .stringSetting(StatusBarIconController.ICON_HIDE_LIST)
@@ -57,7 +60,8 @@ constructor(
             .distinctUntilChanged()
 
     val iconBlockList: Flow<List<String>> =
-        combine(tunerBlockedIcons, shouldShowVibrateIcon) { tunerSet, showVibrate ->
+        combine(tunerBlockedIcons, shouldShowVibrateIcon, unifiedStatusEnabled) {
+                tunerSet, showVibrate, unifiedStatusEnabled ->
             val set = defaultBlockedIcons.toMutableSet()
 
             // Merge tuner blacklist (this is what hides “clock”, “battery”, etc)
@@ -69,6 +73,22 @@ constructor(
                 set.remove(vibrateIconSlot)
             } else {
                 set.add(vibrateIconSlot)
+            }
+
+            if (unifiedStatusEnabled) {
+                set.addAll(
+                    listOf(
+                        context.getString(com.android.internal.R.string.status_bar_airplane),
+                        context.getString(com.android.internal.R.string.status_bar_wifi),
+                        context.getString(com.android.internal.R.string.status_bar_mobile),
+                        context.getString(com.android.internal.R.string.status_bar_stacked_mobile),
+                        context.getString(com.android.internal.R.string.status_bar_zen),
+                        context.getString(com.android.internal.R.string.status_bar_battery),
+                        context.getString(com.android.internal.R.string.status_bar_data_connection),
+                        context.getString(com.android.internal.R.string.status_bar_phone_signal),
+                        context.getString(com.android.internal.R.string.status_bar_phone_evdo_signal),
+                    )
+                )
             }
 
             set.toList()
