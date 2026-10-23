@@ -60,6 +60,7 @@ import com.android.systemui.demomode.DemoMode
 import com.android.systemui.demomode.DemoModeController
 import com.android.systemui.dump.DumpManager
 import com.android.systemui.lifecycle.rememberViewModel
+import com.android.systemui.lunaris.unifiedstatus.UnifiedStatusIndicatorView
 import com.android.systemui.plugins.ActivityStarter
 import com.android.systemui.qs.ChipVisibilityListener
 import com.android.systemui.qs.HeaderPrivacyIconsController
@@ -188,6 +189,9 @@ constructor(
     private lateinit var mShadeCarrierGroupController: ShadeCarrierGroupController
 
     private val batteryIcon: BatteryMeterView = header.requireViewById(R.id.batteryRemainingIcon)
+    private val unifiedStatusIndicator: UnifiedStatusIndicatorView =
+        header.requireViewById(R.id.unified_status_indicator)
+    private var batteryComposeView: ComposeView? = null
     private val clock: Clock = header.requireViewById(R.id.clock)
     private val date: TextView = header.requireViewById(R.id.date)
     private val iconContainer: StatusIconContainer = header.requireViewById(R.id.statusIcons)
@@ -400,6 +404,7 @@ constructor(
 
         val fgColor = getFgColor()
         val bgColor = getBgColor()
+        unifiedStatusIndicator.setIconTint(fgColor)
 
         iconManager = tintedIconManagerFactory.create(iconContainer, StatusBarLocation.QS)
         iconManager.setTint(fgColor, bgColor)
@@ -423,6 +428,7 @@ constructor(
 
             // Configure the compose battery view
             val batteryComposeView = createBatteryComposeView()
+            this.batteryComposeView = batteryComposeView
             mView.requireViewById<ViewGroup>(R.id.hover_system_icons_container).apply {
                 addView(batteryComposeView, -1)
             }
@@ -527,7 +533,7 @@ constructor(
         )
 
         updateQsHeaderClockDateVisibility()
-        tunerService.addTunable(this, QS_HEADER_CLOCK_STYLE)
+        tunerService.addTunable(this, QS_HEADER_CLOCK_STYLE, UnifiedStatusIndicatorView.SETTING)
     }
 
     override fun onViewDetached() {
@@ -557,6 +563,13 @@ constructor(
             QS_HEADER_CLOCK_STYLE -> {
                 qsClockStyle = TunerService.parseInteger(value, 0)
                 updateQsHeaderClockDateVisibility()
+            }
+
+            UnifiedStatusIndicatorView.SETTING -> {
+                val enabled = TunerService.parseInteger(value, 0) != 0
+                unifiedStatusIndicator.isVisible = enabled
+                batteryIcon.isVisible = !enabled && !NewStatusBarIcons.isEnabled
+                batteryComposeView?.isVisible = !enabled
             }
 
             else -> return
@@ -617,6 +630,7 @@ constructor(
             getBgColor(),
         )
         iconManager.setTint(getFgColor(), getBgColor())
+        unifiedStatusIndicator.setIconTint(getFgColor())
     }
 
     private fun updateCarrierGroupPadding() {

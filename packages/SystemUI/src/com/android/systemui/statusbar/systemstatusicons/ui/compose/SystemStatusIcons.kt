@@ -46,6 +46,7 @@ import com.android.systemui.statusbar.systemstatusicons.ui.viewmodel.SystemStatu
 fun SystemStatusIcons(
     viewModelFactory: SystemStatusIconsViewModel.Factory,
     tint: Color,
+    blockedIconSlots: Set<String> = emptySet(),
     modifier: Modifier = Modifier,
     showMobileIcons: Boolean = true,
 ) {
@@ -61,7 +62,8 @@ fun SystemStatusIcons(
         ) {
             viewModel.iconViewModels
                 .filter {
-                    it.visible && (showMobileIcons || it !is SystemStatusIconViewModel.MobileIcons)
+                    it.visible && it.slotName !in blockedIconSlots &&
+                        (showMobileIcons || it !is SystemStatusIconViewModel.MobileIcons)
                 }
                 .forEach { iconViewModel ->
                     // TODO(414653733): Make sure icons are sized uniformly.
