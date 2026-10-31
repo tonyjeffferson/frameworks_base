@@ -133,6 +133,7 @@
     <string name="update_details_title">Detalhes da atualização</string>
     <string name="update_installed_label">Versão instalada</string>
     <string name="update_new_label">Nova versão</string>
+    <string name="update_version_code_label">Código da versão</string>
     <string name="update_version_code">Código %1$d</string>
     <string name="update_minimum_android_label">Android mínimo</string>
     <string name="update_target_android_label">Android alvo</string>
