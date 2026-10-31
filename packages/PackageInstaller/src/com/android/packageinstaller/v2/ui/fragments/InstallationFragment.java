@@ -324,7 +324,12 @@ public class InstallationFragment extends DialogFragment {
                 };
             }
             default -> {
-                mCustomMessageTextView.setVisibility(View.GONE);
+                if (installStage.getMessage() != null) {
+                    mCustomMessageTextView.setText(installStage.getMessage());
+                    mCustomMessageTextView.setVisibility(View.VISIBLE);
+                } else {
+                    mCustomMessageTextView.setVisibility(View.GONE);
+                }
             }
         }
 

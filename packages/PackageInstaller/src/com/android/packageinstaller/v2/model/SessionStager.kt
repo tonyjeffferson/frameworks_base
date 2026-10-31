@@ -43,21 +43,38 @@ class SessionStager internal constructor(
 
     var isRunning = false
 
-    suspend fun execute(): Boolean = withContext(Dispatchers.IO) {
+    internal suspend fun execute(): SessionStagingResult = withContext(Dispatchers.IO) {
         isRunning = true
         val pi: PackageInstaller = context.packageManager.packageInstaller
         var sessionInfo: PackageInstaller.SessionInfo?
+        var obbPayload: StagedObbPayload? = null
         try {
             val session = pi.openSession(stagedSessionId)
             context.contentResolver.openInputStream(uri).use { instream ->
                 session.setStagingProgress(0f)
 
                 if (instream == null) {
-                    return@withContext false
+                    return@withContext SessionStagingResult(false)
                 }
 
                 val sizeBytes = getContentSizeBytes()
                 publishProgress(if (sizeBytes > 0) 0 else -1)
+
+                if (PackageArchiveStager.isArchiveUri(context, uri)) {
+                    val archiveResult = PackageArchiveStager(context).stage(
+                        instream, session, { isRunning }
+                    )
+                    if (!archiveResult.staged) return@withContext SessionStagingResult(false)
+                    obbPayload = archiveResult.obbPayload
+                    sessionInfo = pi.getSessionInfo(stagedSessionId)
+                    val sessionReady = sessionInfo != null && sessionInfo!!.isActive &&
+                        sessionInfo!!.resolvedBaseApkPath != null
+                    if (!sessionReady) obbPayload?.cleanup()
+                    return@withContext SessionStagingResult(
+                        sessionReady,
+                        obbPayload.takeIf { sessionReady },
+                    )
+                }
 
                 var totalRead: Long = 0
                 session.openWrite("PackageInstaller", 0, sizeBytes).use { out ->
@@ -87,10 +104,11 @@ class SessionStager internal constructor(
             // IOException with a message: write failed: EPIPE (Broken pipe). However, this is
             // expected
             Log.w(LOG_TAG, "Error staging apk from content URI", e)
+            obbPayload?.cleanup()
             sessionInfo = null
         }
 
-        return@withContext if (sessionInfo == null
+        val sessionReady = if (sessionInfo == null
             || !sessionInfo?.isActive!!
             || sessionInfo?.resolvedBaseApkPath == null
         ) {
@@ -99,6 +117,8 @@ class SessionStager internal constructor(
         } else {
             true
         }
+        if (!sessionReady) obbPayload?.cleanup()
+        SessionStagingResult(sessionReady, obbPayload.takeIf { sessionReady })
     }
 
     fun cancel() {
@@ -120,3 +140,8 @@ class SessionStager internal constructor(
         _progress.value = progressValue
     }
 }
+
+internal data class SessionStagingResult(
+    val staged: Boolean,
+    val obbPayload: StagedObbPayload? = null,
+)
