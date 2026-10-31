@@ -476,6 +476,8 @@ internal fun UpdateDetailsCard(details: InstallAppDetails, textAlign: TextAlign 
     val minimum = details.minimumSdk?.let { sdkLabel(it) }
         ?: stringResource(R.string.update_sdk_unrestricted)
     val target = details.targetSdk?.let { sdkLabel(it) } ?: unknown
+    val isDowngrade = details.installedVersionCode != null && details.versionCode != null &&
+        details.versionCode < details.installedVersionCode
 
     Surface(color = MaterialTheme.colorScheme.surfaceContainerHigh, shape = RoundedCornerShape(20.dp)) {
         Column(
@@ -483,7 +485,10 @@ internal fun UpdateDetailsCard(details: InstallAppDetails, textAlign: TextAlign 
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Text(
-                stringResource(R.string.update_details_title),
+                stringResource(
+                    if (isDowngrade) R.string.downgrade_details_title
+                    else R.string.update_details_title,
+                ),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface,

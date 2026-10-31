@@ -96,7 +96,7 @@ internal fun installDialogState(
                 appLabel = stage.appLabel,
                 appIcon = stage.appIcon,
                 details = details,
-                message = message?.let(::text),
+                message = stage.message ?: message?.let(::text),
                 tone = InstallerTone.Error,
                 primary = if (stage.statusCode == PackageInstaller.STATUS_FAILURE_STORAGE) {
                     action(R.string.button_manage_apps, listener::sendManageAppsIntent)
@@ -111,7 +111,9 @@ internal fun installDialogState(
                 val changingOwner = stage.isAppUpdating &&
                     existingOwner != null && requestedOwner != null
                 base.copy(
-                    title = if (changingOwner) {
+                    title = if (stage.isDowngrade) {
+                        text(R.string.title_downgrade)
+                    } else if (changingOwner) {
                         context.getString(R.string.title_update_ownership_change, requestedOwner)
                     } else {
                         text(if (stage.isAppUpdating) R.string.title_update else R.string.title_install)
@@ -123,12 +125,14 @@ internal fun installDialogState(
                     appLabel = stage.appLabel,
                     appIcon = stage.appIcon,
                     details = details,
-                    message = if (changingOwner) context.getString(
-                        R.string.message_update_owner_change,
-                        android.text.TextUtils.htmlEncode(existingOwner),
-                    ) else null,
+                    message = if (stage.isDowngrade) text(R.string.installer_downgrade_warning)
+                        else if (changingOwner) context.getString(
+                            R.string.message_update_owner_change,
+                            android.text.TextUtils.htmlEncode(existingOwner),
+                        ) else null,
                     primary = action(
-                        if (changingOwner) R.string.button_update_anyway
+                        if (stage.isDowngrade) R.string.button_install_older_version
+                        else if (changingOwner) R.string.button_update_anyway
                         else if (stage.isAppUpdating) R.string.button_update else R.string.button_install
                     ) { listener.onPositiveResponse(USER_ACTION_REASON_INSTALL_CONFIRMATION) },
                     secondary = cancel,

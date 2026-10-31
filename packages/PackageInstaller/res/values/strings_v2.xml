@@ -31,6 +31,7 @@
     <string name="title_reinstalled">App reinstalled</string>
 
     <string name="title_update">Update this app?</string>
+    <string name="title_downgrade">Install an older version?</string>
     <string name="title_update_ownership_change">Update this app using <xliff:g id="new_update_owner">%1$s</xliff:g>?</string>
     <string name="title_updating">Updating&#8230;</string>
     <string name="title_updated">App updated</string>
@@ -218,6 +219,7 @@
     <!-- Dialog Buttons -->
     <string name="button_install">Install</string>
     <string name="button_update">Update</string>
+    <string name="button_install_older_version">Install older version</string>
     <string name="button_update_anyway">Update anyway</string>
     <string name="button_done">Done</string>
     <string name="button_open">Open</string>
