@@ -7,8 +7,11 @@ data class InstallAppDetails(
     val packageName: String,
     val sizeBytes: Long? = null,
     val version: String? = null,
+    val versionCode: Long? = null,
     val targetSdk: Int? = null,
+    val minimumSdk: Int? = null,
     val installedVersion: String? = null,
+    val installedVersionCode: Long? = null,
 ) {
     companion object {
         fun fromPackageInfo(info: PackageInfo, baseApk: File? = null): InstallAppDetails {
@@ -27,7 +30,9 @@ data class InstallAppDetails(
                 packageName = info.packageName,
                 sizeBytes = sizeBytes,
                 version = info.displayVersion(),
+                versionCode = info.longVersionCode.takeIf { it > 0 },
                 targetSdk = app?.targetSdkVersion?.takeIf { it > 0 },
+                minimumSdk = app?.minSdkVersion?.takeIf { it > 0 },
             )
         }
     }

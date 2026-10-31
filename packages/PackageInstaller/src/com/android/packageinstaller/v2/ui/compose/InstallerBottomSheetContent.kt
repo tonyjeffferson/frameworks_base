@@ -233,7 +233,7 @@ private fun SheetAppDetails(details: InstallAppDetails) {
                 }
                 if (installedVersion != null) {
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                    VersionChange(installedVersion, details.version ?: unknown, TextAlign.Center)
+                    UpdateDetailsCard(details, TextAlign.Center)
                 }
             }
         }

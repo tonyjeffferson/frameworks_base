@@ -44,6 +44,7 @@
     <string name="update_details_title">Update details</string>
     <string name="update_installed_label">Installed version</string>
     <string name="update_new_label">New version</string>
+    <string name="update_version_code_label">Version code</string>
     <string name="update_version_code">Code %1$d</string>
     <string name="update_minimum_android_label">Minimum Android</string>
     <string name="update_target_android_label">Target Android</string>

@@ -5,6 +5,7 @@ package com.android.packageinstaller.v2.ui.compose
 import android.app.Dialog
 import android.content.DialogInterface
 import android.graphics.drawable.Drawable
+import android.os.Build
 import android.os.Bundle
 import android.text.BidiFormatter
 import android.text.Html
@@ -59,6 +60,7 @@ import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialExpressiveTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MotionScheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
@@ -405,7 +407,7 @@ private fun AppDetailsCard(label: String?, icon: Drawable?, details: InstallAppD
             }
             val installedVersion = app.installedVersion
             if (installedVersion != null) {
-                VersionChange(installedVersion, app.version ?: unknown)
+                UpdateDetailsCard(app)
             }
             BoxWithConstraints {
                 when {
@@ -432,7 +434,9 @@ private fun AppDetailsCard(label: String?, icon: Drawable?, details: InstallAppD
                                     Modifier.weight(1f),
                                 )
                             }
-                            DetailValue(stringResource(R.string.installer_target_sdk), target)
+                            if (installedVersion == null) {
+                                DetailValue(stringResource(R.string.installer_target_sdk), target)
+                            }
                         }
                     }
                     else -> {
@@ -447,17 +451,72 @@ private fun AppDetailsCard(label: String?, icon: Drawable?, details: InstallAppD
                                     Modifier.weight(1f),
                                 )
                             }
-                            DetailValue(
-                                stringResource(R.string.installer_target_sdk),
-                                target,
-                                Modifier.weight(1f),
-                            )
+                            if (installedVersion == null) {
+                                DetailValue(
+                                    stringResource(R.string.installer_target_sdk),
+                                    target,
+                                    Modifier.weight(1f),
+                                )
+                            }
                         }
                     }
                 }
             }
         }
     }
+}
+
+@Composable
+internal fun UpdateDetailsCard(details: InstallAppDetails, textAlign: TextAlign = TextAlign.Start) {
+    val unknown = stringResource(R.string.update_version_unknown)
+    val installed = details.installedVersion ?: unknown
+    val incoming = details.version ?: unknown
+    val installedCode = details.installedVersionCode?.toString() ?: unknown
+    val incomingCode = details.versionCode?.toString() ?: unknown
+    val minimum = details.minimumSdk?.let { sdkLabel(it) }
+        ?: stringResource(R.string.update_sdk_unrestricted)
+    val target = details.targetSdk?.let { sdkLabel(it) } ?: unknown
+
+    Surface(color = MaterialTheme.colorScheme.surfaceContainerHigh, shape = RoundedCornerShape(20.dp)) {
+        Column(
+            Modifier.fillMaxWidth().padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Text(
+                stringResource(R.string.update_details_title),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = textAlign,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    DetailValue(stringResource(R.string.update_installed_label), installed, textAlign = textAlign)
+                    DetailValue(stringResource(R.string.update_version_code_label), installedCode, textAlign = textAlign)
+                }
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    DetailValue(stringResource(R.string.update_new_label), incoming, textAlign = textAlign)
+                    DetailValue(stringResource(R.string.update_version_code_label), incomingCode, textAlign = textAlign)
+                }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                DetailValue(stringResource(R.string.update_minimum_android_label), minimum, Modifier.weight(1f), textAlign)
+                DetailValue(stringResource(R.string.update_target_android_label), target, Modifier.weight(1f), textAlign)
+            }
+        }
+    }
+}
+
+@Composable
+private fun sdkLabel(sdk: Int): String {
+    val version = when (sdk) {
+        29 -> "10"; 30 -> "11"; 31 -> "12"; 32 -> "12L"; 33 -> "13"
+        34 -> "14"; 35 -> "15"; Build.VERSION_CODES.BAKLAVA -> "16"
+        else -> null
+    }
+    return if (version == null) stringResource(R.string.installer_sdk_value, sdk)
+    else stringResource(R.string.update_android_version, version, sdk)
 }
 
 @Composable

@@ -740,7 +740,11 @@ class InstallRepository(private val context: Context) : EventResultPersister.Eve
             )
         }
         isAppUpdating = isAppUpdating(newPackageInfo)
-        appDetails = appDetails?.copy(installedVersion = getInstalledVersion())
+        val installedPackage = getInstalledPackageInfo()
+        appDetails = appDetails?.copy(
+            installedVersion = installedPackage?.displayVersion(),
+            installedVersionCode = installedPackage?.longVersionCode?.takeIf { it > 0 },
+        )
         val (existingUpdateOwner, requestedUpdateOwner) =
             getUpdateOwners(newPackageInfo, userActionReason, isAppUpdating)
 
@@ -767,7 +771,11 @@ class InstallRepository(private val context: Context) : EventResultPersister.Eve
             }
         appSnippet = getAppSnippet(context, sessionInfo)
         isAppUpdating = isAppUpdating(newPackageInfo)
-        appDetails = appDetails?.copy(installedVersion = getInstalledVersion())
+        val installedPackage = getInstalledPackageInfo()
+        appDetails = appDetails?.copy(
+            installedVersion = installedPackage?.displayVersion(),
+            installedVersionCode = installedPackage?.longVersionCode?.takeIf { it > 0 },
+        )
         val (existingUpdateOwner, requestedUpdateOwner) =
             getUpdateOwners(newPackageInfo, userActionReason, isAppUpdating)
 
@@ -845,14 +853,14 @@ class InstallRepository(private val context: Context) : EventResultPersister.Eve
         }
     }
 
-    private fun getInstalledVersion(): String? {
+    private fun getInstalledPackageInfo(): PackageInfo? {
         if (!isAppUpdating) return null
         val packageName = newPackageInfo?.packageName ?: return null
         // Capture before installation so the result screen keeps the original version.
         return try {
             packageManager.getPackageInfo(
                 packageName, PackageManager.MATCH_UNINSTALLED_PACKAGES
-            ).displayVersion()
+            )
         } catch (_: PackageManager.NameNotFoundException) {
             null
         }
