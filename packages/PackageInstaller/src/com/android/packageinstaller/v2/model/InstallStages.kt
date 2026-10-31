@@ -56,6 +56,9 @@ data class InstallUserActionRequired(
     val verificationInfo: PackageInstaller.DeveloperVerificationUserConfirmationInfo? = null,
 ) : InstallStage(STAGE_USER_ACTION_REQUIRED) {
 
+    val isDowngrade: Boolean
+        get() = updateDetails?.let { it.newVersionCode < it.installedVersionCode } == true
+
     val appIcon: Drawable?
         get() = appSnippet?.icon
 

@@ -12,6 +12,7 @@
     <string name="installer_detail_unavailable">Not available</string>
     <string name="installer_install_hint">Ready when you are</string>
     <string name="installer_update_hint">A fresh version is ready</string>
+    <string name="installer_downgrade_warning">This package is older than the installed version. Android may block the downgrade.</string>
     <string name="installer_staging_hint">Getting everything ready</string>
     <string name="installer_installing_hint">Just a moment</string>
     <string name="installer_success_hint">You’re all set</string>

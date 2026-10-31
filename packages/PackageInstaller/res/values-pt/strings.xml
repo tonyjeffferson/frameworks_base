@@ -131,8 +131,12 @@
     <string name="unarchive_settings_button" msgid="3504171760009177425">"Configurações"</string>
     <string name="close" msgid="5214897374055647996">"Fechar"</string>
     <string name="update_details_title">Detalhes da atualização</string>
+    <string name="downgrade_details_title">Detalhes da versão anterior</string>
     <string name="update_installed_label">Versão instalada</string>
     <string name="update_new_label">Nova versão</string>
+    <string name="title_downgrade">Instalar uma versão anterior?</string>
+    <string name="button_install_older_version">Instalar versão anterior</string>
+    <string name="installer_downgrade_warning">Este pacote é mais antigo que a versão instalada. O Android pode bloquear a instalação como downgrade.</string>
     <string name="update_version_code_label">Código da versão</string>
     <string name="update_version_code">Código %1$d</string>
     <string name="update_minimum_android_label">Android mínimo</string>

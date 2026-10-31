@@ -38,6 +38,7 @@
     <string name="install_failed_incompatible" product="tv" msgid="2890001324362291683">"Este app não é compatível com sua TV."</string>
     <string name="install_failed_incompatible" product="default" msgid="7254630419511645826">"Como o app não é compatível com seu smartphone, ele não foi instalado."</string>
     <string name="install_failed_invalid_apk" msgid="8581007676422623930">"Como o pacote parece ser inválido, o app não foi instalado."</string>
+    <string name="install_failed_obb">"O app não foi instalado porque os arquivos de expansão não puderam ser salvos. Libere espaço e tente novamente."</string>
     <string name="install_failed_msg" product="tablet" msgid="6298387264270562442">"Não foi possível instalar o app <xliff:g id="APP_NAME">%1$s</xliff:g> no seu tablet."</string>
     <string name="install_failed_msg" product="tv" msgid="1920009940048975221">"Não foi possível instalar o app <xliff:g id="APP_NAME">%1$s</xliff:g> na sua TV."</string>
     <string name="install_failed_msg" product="default" msgid="6484461562647915707">"Não foi possível instalar o app <xliff:g id="APP_NAME">%1$s</xliff:g> no seu smartphone."</string>

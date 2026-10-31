@@ -67,6 +67,17 @@
                 <data android:scheme="content" />
             </intent-filter>
             <intent-filter android:priority="1">
+                <action android:name="android.intent.action.VIEW" />
+                <action android:name="android.intent.action.INSTALL_PACKAGE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="content" />
+                <data android:mimeType="application/zip" />
+                <data android:mimeType="application/x-zip-compressed" />
+                <data android:mimeType="application/vnd.apkm" />
+                <data android:mimeType="application/vnd.xapk" />
+                <data android:mimeType="application/vnd.android.apks" />
+            </intent-filter>
+            <intent-filter android:priority="1">
                 <action android:name="android.content.pm.action.CONFIRM_INSTALL" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
