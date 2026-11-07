@@ -477,7 +477,7 @@ public class LunarisIdleManager {
                 new Intent(ACTION_SCAN).setPackage(mContext.getPackageName()),
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         long triggerAt = SystemClock.elapsedRealtime() + Math.max(delayMs, MIN_DELAY_MS);
-        mAlarmManager.setExactAndAllowWhileIdle(AlarmManager.ELAPSED_REALTIME_WAKEUP, triggerAt, pi);
+        mAlarmManager.setAndAllowWhileIdle(AlarmManager.ELAPSED_REALTIME_WAKEUP, triggerAt, pi);
         Log.d(TAG, "Scan alarm set in " + TimeUnit.MILLISECONDS.toMinutes(delayMs) + " min");
     }
 
